@@ -6,7 +6,7 @@ import docx  # python-docx for DOCX
 
 app = Flask(__name__)
 
-API_KEY = "Gemini Api Key "
+API_KEY = "GEMINI_API_KEY=your_real_api_key_here "
 client = genai.Client(api_key=API_KEY)
 
 app.config["UPLOAD_FOLDER"] = "uploads"
@@ -128,6 +128,7 @@ def chat():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
