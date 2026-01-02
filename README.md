@@ -29,13 +29,13 @@ ai-mcqs-generator/
 
 ---
 
-## **6️⃣ Installation & Setup**
+## ** Installation & Setup**
 Step-by-step instructions so anyone can run your project.
 
 ```markdown
 ## ⚙️ Installation & Setup
 
-### 1️⃣ Clone the repository
+###  Clone the repository
 ```bash
 git clone https://github.com/Sidraakram878/ai-mcqs-generator.git
 cd ai-mcqs-generator
