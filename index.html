@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MCQ'S Chatbot</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin:0; padding:0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .chat-container {
+      width: 600px;
+      max-width: 95%;
+      height: 90vh;
+      background: #ffffff;
+      border-radius: 15px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      padding: 20px;
+      background: #0066ff;
+      color: white;
+      font-size: 20px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    #chat-box {
+      flex-grow: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background: #e5ddd5;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .user-message, .bot-message {
+      max-width: 80%;
+      padding: 10px 15px;
+      border-radius: 15px;
+      word-wrap: break-word;
+      font-size: 14px;
+    }
+
+    .user-message { 
+      background: #dcf8c6; 
+      align-self: flex-end;
+    }
+
+    .bot-message { 
+      background: #fff; 
+      align-self: flex-start;
+      border: 1px solid #ccc;
+    }
+
+    .mcq-card {
+      background: #ffffff;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 12px 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .mcq-card .question {
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .mcq-card .options div {
+      margin: 4px 0;
+      padding: 6px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .mcq-card .options div:hover {
+      background: #f1f1f1;
+    }
+
+    .mcq-card .answer {
+      margin-top: 6px;
+      color: #007bff;
+      font-weight: bold;
+    }
+
+    .chat-input {
+      display: flex;
+      padding: 10px;
+      gap: 10px;
+      background: #f0f0f0;
+      align-items: center;
+    }
+
+    .chat-input input[type="text"] {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 25px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    .chat-input input[type="file"] {
+      display: none;
+    }
+
+    .chat-input input[type="number"] {
+      width: 80px;
+      padding: 10px;
+      border-radius: 25px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    .chat-input button {
+      padding: 10px 20px;
+      border-radius: 25px;
+      border: none;
+      background: #0066ff;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .chat-input button:hover {
+      background: #0047b3;
+    }
+
+    .file-label {
+      padding: 8px 12px;
+      background: #f0f4ff;
+      border-radius: 20px;
+      border: 1px dashed #80aaff;
+      cursor: pointer;
+      font-size: 14px;
+      color: #0047b3;
+    }
+  </style>
+</head>
+<body>
+
+<div class="chat-container">
+  <div class="chat-header">MCQ Chatbot</div>
+
+  <div id="chat-box"></div>
+
+  <div class="chat-input">
+    <input type="text" id="inputText" placeholder="Type text here or select file...">
+    <label class="file-label" for="fileInput">📄 File</label>
+    <input type="file" id="fileInput" accept=".pdf,.doc,.docx">
+    <input type="number" id="mcqCount" min="1" max="50" placeholder="MCQs" value="10">
+    <button onclick="generateMCQs()">Generate</button>
+  </div>
+</div>
+
+<script>
+  let selectedFile = null;
+
+  document.getElementById("fileInput").addEventListener("change", (e) => {
+    selectedFile = e.target.files[0];
+    document.getElementById("inputText").value = selectedFile ? selectedFile.name : "";
+  });
+
+  async function generateMCQs() {
+    const text = document.getElementById("inputText").value.trim();
+    const count = document.getElementById("mcqCount").value || 10;
+    const chatBox = document.getElementById("chat-box");
+
+    if (!text && !selectedFile) return alert("Enter text or select a file!");
+
+    // Show user message
+    const userDiv = document.createElement("div");
+    userDiv.className = "user-message";
+    userDiv.textContent = selectedFile ? `Uploaded: ${selectedFile.name} | Requested ${count} MCQs` 
+                                      : `Requested ${count} MCQs`;
+    chatBox.appendChild(userDiv);
+
+    let data;
+
+    if (selectedFile) {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("count", count);
+
+      const res = await fetch("/upload", { method: "POST", body: formData });
+      data = await res.json();
+      selectedFile = null; // reset after upload
+      document.getElementById("inputText").value = "";
+      document.getElementById("fileInput").value = "";
+    } else {
+      const res = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, count })
+      });
+      data = await res.json();
+    }
+
+    displayMCQs(data.reply);
+  }
+
+  function displayMCQs(replyText) {
+    const chatBox = document.getElementById("chat-box");
+    const mcqBlocks = replyText.split(/\nQ\d+:/).filter(Boolean);
+
+    mcqBlocks.forEach((block, index) => {
+      const card = document.createElement("div");
+      card.className = "mcq-card";
+
+      const lines = block.trim().split("\n").filter(Boolean);
+
+      const questionDiv = document.createElement("div");
+      questionDiv.className = "question";
+      questionDiv.textContent = `Q${index+1}: ${lines[0]}`;
+      card.appendChild(questionDiv);
+
+      const optionsDiv = document.createElement("div");
+      optionsDiv.className = "options";
+      lines.slice(1, -1).forEach(opt => {
+        const optDiv = document.createElement("div");
+        optDiv.textContent = opt;
+        optionsDiv.appendChild(optDiv);
+      });
+      card.appendChild(optionsDiv);
+
+      const answerDiv = document.createElement("div");
+      answerDiv.className = "answer";
+      answerDiv.textContent = lines[lines.length - 1];
+      card.appendChild(answerDiv);
+
+      chatBox.appendChild(card);
+    });
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+</script>
+
+</body>
+</html>
+
+
+
+
